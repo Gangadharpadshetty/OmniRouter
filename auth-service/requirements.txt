@@ -9,12 +9,6 @@ pydantic-settings
 python-multipart
 psycopg2-binary>=2.9
 python-dotenv>=1.0
-fastapi
-uvicorn
-sqlalchemy
-asyncpg
-python-jose[cryptography]
-passlib[bcrypt]
-pydantic
-pydantic-settings
-python-multipart
+email-validator
+dnspython
+gunicorn

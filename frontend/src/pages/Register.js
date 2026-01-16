@@ -11,7 +11,7 @@ export default function Register() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,7 +32,6 @@ export default function Register() {
     try {
       await register(email, password);
       // Auto login after registration
-      const { login } = useAuth();
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {

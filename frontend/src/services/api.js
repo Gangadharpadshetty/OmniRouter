@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API_BASE_URLs = {
-  auth: 'https://omnirouter-authservice.onrender.com',
+  auth: 'https://omnirouter-auth1.onrender.com',
   project: 'https://omnirouter-project-services.onrender.com',
   chat: 'https://omnirouter-chatservice.onrender.com'
 };

@@ -86,6 +86,20 @@ export const clearAuthToken = () => {
   addTokenToRequest(null);
 };
 
+// Add response interceptor to handle 401 errors
+const handle401 = (error) => {
+  if (error.response?.status === 401) {
+    // Token expired or invalid - clear auth and redirect to login
+    clearAuthToken();
+    window.location.href = '/login';
+  }
+  return Promise.reject(error);
+};
+
+projectApi.interceptors.response.use(response => response, handle401);
+chatApi.interceptors.response.use(response => response, handle401);
+authApi.interceptors.response.use(response => response, handle401);
+
 // Initialize with stored token
 const storedToken = getAuthToken();
 if (storedToken) {

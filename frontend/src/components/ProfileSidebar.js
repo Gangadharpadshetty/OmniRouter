@@ -13,6 +13,7 @@ export default function ProfileSidebar({ onSelectProject, onSelectConversation }
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadProjects();
@@ -21,10 +22,13 @@ export default function ProfileSidebar({ onSelectProject, onSelectConversation }
   const loadProjects = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await projectAPI.getProjects();
       setProjects(response.data || []);
     } catch (err) {
       console.error('Failed to load projects:', err);
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to load projects';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -49,6 +53,7 @@ export default function ProfileSidebar({ onSelectProject, onSelectConversation }
     if (!newProjectName.trim()) return;
 
     try {
+      setError(null);
       await projectAPI.createProject(newProjectName, newProjectDesc);
       setNewProjectName('');
       setNewProjectDesc('');
@@ -56,6 +61,9 @@ export default function ProfileSidebar({ onSelectProject, onSelectConversation }
       loadProjects();
     } catch (err) {
       console.error('Failed to create project:', err);
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to create project';
+      setError(errorMsg);
+      alert(`Error: ${errorMsg}`);
     }
   };
 
@@ -134,6 +142,19 @@ export default function ProfileSidebar({ onSelectProject, onSelectConversation }
               </button>
             </div>
           </form>
+        )}
+
+        {error && (
+          <div className="error-message" style={{ 
+            padding: '10px', 
+            margin: '10px 0', 
+            background: '#fee', 
+            color: '#c00',
+            borderRadius: '4px',
+            fontSize: '12px'
+          }}>
+            {error}
+          </div>
         )}
 
         {loading ? (

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FiMail, FiLock } from 'react-icons/fi';
+import { validateEmail } from '../utils/emailValidator';
 import '../styles/auth.css';
 
 export default function Login() {
@@ -15,10 +16,19 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    // Validate email (basic validation for login, no disposable check)
+    const emailValidation = validateEmail(email, { checkDisposable: false });
+    if (!emailValidation.isValid) {
+      setError(emailValidation.error);
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await login(email, password);
+      // Use normalized email
+      await login(emailValidation.normalizedEmail, password);
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed');

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FiMail, FiLock } from 'react-icons/fi';
+import { validateEmail } from '../utils/emailValidator';
 import '../styles/auth.css';
 
 export default function Register() {
@@ -17,6 +18,13 @@ export default function Register() {
     e.preventDefault();
     setError('');
 
+    // Validate email
+    const emailValidation = validateEmail(email, { checkDisposable: true });
+    if (!emailValidation.isValid) {
+      setError(emailValidation.error);
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -30,9 +38,11 @@ export default function Register() {
     setLoading(true);
 
     try {
-      await register(email, password);
+      // Use normalized email
+      const normalizedEmail = emailValidation.normalizedEmail;
+      await register(normalizedEmail, password);
       // Auto login after registration
-      await login(email, password);
+      await login(normalizedEmail, password);
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.detail || 'Registration failed');

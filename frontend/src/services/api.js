@@ -7,9 +7,18 @@ const API_BASE_URLs = {
 };
 
 // Create axios instances for each service
-const authApi = axios.create({ baseURL: API_BASE_URLs.auth });
-const projectApi = axios.create({ baseURL: API_BASE_URLs.project });
-const chatApi = axios.create({ baseURL: API_BASE_URLs.chat });
+const authApi = axios.create({ 
+  baseURL: API_BASE_URLs.auth,
+  withCredentials: true
+});
+const projectApi = axios.create({ 
+  baseURL: API_BASE_URLs.project,
+  withCredentials: true
+});
+const chatApi = axios.create({ 
+  baseURL: API_BASE_URLs.chat,
+  withCredentials: true
+});
 
 // Add token to requests
 const addTokenToRequest = (token) => {
@@ -17,6 +26,10 @@ const addTokenToRequest = (token) => {
     authApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     projectApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     chatApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete authApi.defaults.headers.common['Authorization'];
+    delete projectApi.defaults.headers.common['Authorization'];
+    delete chatApi.defaults.headers.common['Authorization'];
   }
 };
 
@@ -86,6 +99,19 @@ export const clearAuthToken = () => {
   addTokenToRequest(null);
 };
 
+// Add request interceptor to ensure token is always added
+const addTokenInterceptor = (config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+};
+
+projectApi.interceptors.request.use(addTokenInterceptor);
+chatApi.interceptors.request.use(addTokenInterceptor);
+authApi.interceptors.request.use(addTokenInterceptor);
+
 // Add response interceptor to handle 401 errors
 const handle401 = (error) => {
   if (error.response?.status === 401) {
@@ -93,6 +119,13 @@ const handle401 = (error) => {
     clearAuthToken();
     window.location.href = '/login';
   }
+  console.error('API Error:', {
+    url: error.config?.url,
+    method: error.config?.method,
+    status: error.response?.status,
+    data: error.response?.data,
+    message: error.message
+  });
   return Promise.reject(error);
 };
 

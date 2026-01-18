@@ -6,6 +6,9 @@ from app.schemas.chat import (
 )
 from app.services.chat_service import ConversationService, MessageService
 from app.utils.dependencies import get_current_user, get_conversation_service, get_message_service
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/conversations", tags=["Chat"])
 
@@ -15,13 +18,19 @@ async def create_conversation(
     current_user: str = Depends(get_current_user),
     service: ConversationService = Depends(get_conversation_service)
 ):
-    conversation = await service.create_conversation(project_id)
-    return ConversationResponse(
-        id=conversation.id,
-        project_id=conversation.project_id,
-        created_at=conversation.created_at,
-        updated_at=conversation.updated_at
-    )
+    try:
+        logger.info(f"Creating conversation for project_id={project_id}, user={current_user}")
+        conversation = await service.create_conversation(project_id)
+        logger.info(f"Created conversation id={conversation.id}")
+        return ConversationResponse(
+            id=conversation.id,
+            project_id=conversation.project_id,
+            created_at=conversation.created_at,
+            updated_at=conversation.updated_at
+        )
+    except Exception as e:
+        logger.error(f"Error creating conversation: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create conversation: {str(e)}")
 
 @router.get("/{conversation_id}", response_model=ConversationResponse)
 async def get_conversation(
@@ -65,16 +74,23 @@ async def send_message(
     service: MessageService = Depends(get_message_service)
 ):
     try:
+        logger.info(f"Sending message to conversation_id={conversation_id}, user={current_user}")
+        logger.info(f"Message content: {req.content[:100]}...")  # Log first 100 chars
         response = await service.send_message_and_get_response(conversation_id, req.content)
+        logger.info(f"Got LLM response: {response[:100]}...")
         return SendMessageResponse(
             message_id=conversation_id,
             response=response,
             created_at=__import__('datetime').datetime.utcnow()
         )
     except ValueError as e:
+        logger.error(f"ValueError in send_message: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Error communicating with LLM service")
+        logger.error(f"Exception in send_message: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error communicating with LLM service: {str(e)}")
 
 @router.get("/project/{project_id}", response_model=list[ConversationResponse])
 async def list_project_conversations(
@@ -82,16 +98,22 @@ async def list_project_conversations(
     current_user: str = Depends(get_current_user),
     service: ConversationService = Depends(get_conversation_service)
 ):
-    conversations = await service.list_conversations(project_id)
-    return [
-        ConversationResponse(
-            id=c.id,
-            project_id=c.project_id,
-            created_at=c.created_at,
-            updated_at=c.updated_at
-        )
-        for c in conversations
-    ]
+    try:
+        logger.info(f"Listing conversations for project_id={project_id}, user={current_user}")
+        conversations = await service.list_conversations(project_id)
+        logger.info(f"Found {len(conversations)} conversations")
+        return [
+            ConversationResponse(
+                id=c.id,
+                project_id=c.project_id,
+                created_at=c.created_at,
+                updated_at=c.updated_at
+            )
+            for c in conversations
+        ]
+    except Exception as e:
+        logger.error(f"Error listing conversations: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to list conversations: {str(e)}")
 
 @router.delete("/{conversation_id}")
 async def delete_conversation(

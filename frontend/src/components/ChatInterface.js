@@ -10,6 +10,7 @@ export default function ChatInterface({ project }) {
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [conversationLoading, setConversationLoading] = useState(false);
+  const [error, setError] = useState(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -25,6 +26,7 @@ export default function ChatInterface({ project }) {
   const loadConversations = async () => {
     try {
       setConversationLoading(true);
+      setError(null);
       const response = await chatAPI.listProjectConversations(project.id);
       setConversations(response.data || []);
       if (response.data && response.data.length > 0) {
@@ -32,6 +34,8 @@ export default function ChatInterface({ project }) {
       }
     } catch (err) {
       console.error('Failed to load conversations:', err);
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to load conversations';
+      setError(errorMsg);
     } finally {
       setConversationLoading(false);
     }
@@ -40,12 +44,16 @@ export default function ChatInterface({ project }) {
   const createNewConversation = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await chatAPI.createConversation(project.id);
       const newConversation = response.data;
       setConversations(prev => [newConversation, ...prev]);
       selectConversation(newConversation);
     } catch (err) {
       console.error('Failed to create conversation:', err);
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to create conversation';
+      setError(errorMsg);
+      alert(`Error: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -54,11 +62,14 @@ export default function ChatInterface({ project }) {
   const selectConversation = async (conversation) => {
     setActiveConversation(conversation);
     setMessages([]);
+    setError(null);
     try {
       const response = await chatAPI.getConversationMessages(conversation.id);
       setMessages(response.data || []);
     } catch (err) {
       console.error('Failed to load messages:', err);
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to load messages';
+      setError(errorMsg);
     }
   };
 
@@ -67,13 +78,15 @@ export default function ChatInterface({ project }) {
     if (!inputValue.trim() || !activeConversation) return;
 
     const userMessage = inputValue;
+    const tempId = 'temp-' + Date.now();
     setInputValue('');
     setLoading(true);
+    setError(null);
 
     try {
       // Add user message to UI optimistically
       setMessages(prev => [...prev, {
-        id: 'temp-' + Date.now(),
+        id: tempId,
         role: 'user',
         content: userMessage,
         created_at: new Date().toISOString()
@@ -93,8 +106,11 @@ export default function ChatInterface({ project }) {
       }
     } catch (err) {
       console.error('Failed to send message:', err);
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to send message';
+      setError(errorMsg);
       // Remove optimistic user message on error
-      setMessages(prev => prev.filter(msg => msg.id !== 'temp-' + Date.now()));
+      setMessages(prev => prev.filter(msg => msg.id !== tempId));
+      alert(`Error: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -129,6 +145,19 @@ export default function ChatInterface({ project }) {
       </div>
 
       <div className="chat-content">
+        {error && (
+          <div className="error-banner" style={{ 
+            padding: '10px', 
+            margin: '10px', 
+            background: '#fee', 
+            color: '#c00',
+            borderRadius: '4px',
+            fontSize: '14px'
+          }}>
+            {error}
+          </div>
+        )}
+
         <div className="conversations-panel">
           <h3>Conversations</h3>
           {conversationLoading ? (
